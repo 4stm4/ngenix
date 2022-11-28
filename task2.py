@@ -3,8 +3,6 @@ import asyncio
 import aiofiles
 from zipfile import ZipFile, Path
 import xml.etree.ElementTree as ET
-import concurrent.futures
-from multiprocessing import cpu_count
 
 
 DIR_NAME = 'archives'
@@ -48,25 +46,14 @@ def create_csv_files():
     asyncio.run(write_csv_data(ID_OBJECT_NAME, ['id,object_name']))
     asyncio.run(write_csv_data(ID_LEVEL, ['id,level']))
     zipfiles_list = [file for file in files_list if file.find('.zip') > 0]
-    NUM_CORES = cpu_count()
-    futures = []
-    with concurrent.futures.ProcessPoolExecutor(NUM_CORES) as executor:
-        for zipfile_name in zipfiles_list:
-            zipfile = ZipFile(os.path.join(DIR_NAME, zipfile_name), mode='r')
-            arch_path = Path(zipfile)
-            if not arch_path.is_dir():
-                continue
-            xmlfiles_list = [
-                file.name for file in arch_path.iterdir() if file.name.find('.xml') > 0]
-            xmls_to_csv(xmlfiles_list, zipfile)
-        for _ in range(NUM_CORES):
-            new_future = executor.submit(
-                xmls_to_csv,
-                xmlfiles_list=xmlfiles_list,
-                zipfile=zipfile,
-            )
-            futures.append(new_future)
-    concurrent.futures.wait(futures)
+    for zipfile_name in zipfiles_list:
+        zipfile = ZipFile(os.path.join(DIR_NAME, zipfile_name), mode='r')
+        arch_path = Path(zipfile)
+        if not arch_path.is_dir():
+            continue
+        xmlfiles_list = [
+            file.name for file in arch_path.iterdir() if file.name.find('.xml') > 0]
+        xmls_to_csv(xmlfiles_list, zipfile)
 
 
 if __name__ == "__main__":
